@@ -142,6 +142,10 @@
 							<v-text-field v-model.number="duetFifoLimit" type="number" min="1" max="20" dense outlined hide-details
 										  :label="$t('plugins.duetConfigBackup.configBackup.cloud.fifoLimitLabel')" style="max-width: 260px;" class="mb-3"
 										  @change="setDuetCloudFifoLimit(duetFifoLimit)" />
+							<v-btn small text :href="DUET_BACKUP_WEB_URL" target="_blank" rel="noopener" class="mb-2">
+								<v-icon small class="me-1">mdi-open-in-new</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.viewOnlineButton") }}
+							</v-btn>
 							<div class="text-caption text--secondary">{{ $t("plugins.duetConfigBackup.configBackup.cloud.browseInRestoreTab") }}</div>
 						</template>
 						<v-alert v-if="duetError" type="error" text dense class="mt-3">{{ duetError }}</v-alert>
@@ -272,7 +276,7 @@
 
 <script>
 import {
-	disableEncryption, enableEncryption, exportEncryptedBundle, getAutoBackupNudgeSettings, getDropboxSettings,
+	disableEncryption, DUET_BACKUP_WEB_URL, enableEncryption, exportEncryptedBundle, getAutoBackupNudgeSettings, getDropboxSettings,
 	getDuetCloudApiUrl, getDuetCloudFifoLimit, getDuetCloudSession, getGithubSettings, getGoogleDriveClientId,
 	getWebDavSettings, importEncryptedBundle, isEncryptionAvailable, isEncryptionEnabled, isSessionUnlocked,
 	lockSession, setAutoBackupNudgeSettings, setDropboxSettings, setDuetCloudFifoLimit,
@@ -322,6 +326,7 @@ export default {
 			thisHostname: buildMachineIdentity(this.$store.state.machine.model).hostname,
 			duetEmail: "", duetPassword: "", duetLoggingIn: false, duetError: null,
 			duetSession: getDuetCloudSession(), duetFifoLimit: getDuetCloudFifoLimit(),
+			DUET_BACKUP_WEB_URL,
 
 			githubRepo: (githubSaved && githubSaved.repo) || "",
 			githubBranch: (githubSaved && githubSaved.branch) || "main",
