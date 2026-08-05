@@ -25,8 +25,14 @@ build.bat
 ```
 
 `dwc-config-backup-core` must be installed into that DWC checkout's own `node_modules` first (DWC's
-`build-plugin` script does not install a plugin's own dependencies) - `npm install --save-dev
-dwc-config-backup-core` from the DWC checkout root, or a `file:` link while developing locally.
+`build-plugin` script does not install a plugin's own dependencies):
+
+```bash
+npm install --save-dev dwc-config-backup-core
+```
+
+It's [published on npm](https://www.npmjs.com/package/dwc-config-backup-core), so this needs no git
+access - a `file:` link to a local checkout of that repo also works while developing locally.
 
 ## Known reduced scope vs the DWC 3.7 build
 
