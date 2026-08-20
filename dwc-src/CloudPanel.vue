@@ -123,6 +123,12 @@
 						</div>
 					</v-expansion-panel-header>
 					<v-expansion-panel-content>
+						<div class="mb-3">
+							<v-btn small outlined @click="$emit('help', 'duet')">
+								<v-icon left small>mdi-book-open-variant</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.setupInstructions") }}
+							</v-btn>
+						</div>
 						<template v-if="!duetSession">
 							<v-text-field v-model="duetEmail" :label="$t('plugins.duetConfigBackup.configBackup.cloud.email')"
 										  dense outlined hide-details class="mb-2" />
@@ -164,6 +170,12 @@
 						</div>
 					</v-expansion-panel-header>
 					<v-expansion-panel-content>
+						<div class="mb-3">
+							<v-btn small outlined @click="$emit('help', 'github')">
+								<v-icon left small>mdi-book-open-variant</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.setupInstructions") }}
+							</v-btn>
+						</div>
 						<v-text-field v-model="githubRepo" :label="$t('plugins.duetConfigBackup.configBackup.github.repoLabel')"
 									  dense outlined hide-details class="mb-2" />
 						<v-text-field v-model="githubBranch" :label="$t('plugins.duetConfigBackup.configBackup.github.branchLabel')"
@@ -194,6 +206,12 @@
 						</div>
 					</v-expansion-panel-header>
 					<v-expansion-panel-content>
+						<div class="mb-3">
+							<v-btn small outlined @click="$emit('help', 'drive')">
+								<v-icon left small>mdi-book-open-variant</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.setupInstructions") }}
+							</v-btn>
+						</div>
 						<v-alert v-if="!driveOriginOk" type="warning" text dense class="mb-3">
 							{{ $t("plugins.duetConfigBackup.configBackup.drive.unavailableBody") }}
 						</v-alert>
@@ -221,6 +239,12 @@
 						</div>
 					</v-expansion-panel-header>
 					<v-expansion-panel-content>
+						<div class="mb-3">
+							<v-btn small outlined @click="$emit('help', 'dropbox')">
+								<v-icon left small>mdi-book-open-variant</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.setupInstructions") }}
+							</v-btn>
+						</div>
 						<v-text-field v-model="dropboxToken" :label="$t('plugins.duetConfigBackup.configBackup.dropbox.tokenLabel')" type="password"
 									  dense outlined hide-details class="mb-2" />
 						<div class="text-caption text--secondary mb-2">{{ $t("plugins.duetConfigBackup.configBackup.dropbox.tokenHelp") }}</div>
@@ -246,6 +270,12 @@
 						</div>
 					</v-expansion-panel-header>
 					<v-expansion-panel-content>
+						<div class="mb-3">
+							<v-btn small outlined @click="$emit('help', 'webdav')">
+								<v-icon left small>mdi-book-open-variant</v-icon>
+								{{ $t("plugins.duetConfigBackup.configBackup.cloud.setupInstructions") }}
+							</v-btn>
+						</div>
 						<v-text-field v-model="webdavUrl" :label="$t('plugins.duetConfigBackup.configBackup.webdav.urlLabel')"
 									  dense outlined hide-details class="mb-2" />
 						<div class="text-caption text--secondary mb-2">{{ $t("plugins.duetConfigBackup.configBackup.webdav.urlHelp") }}</div>

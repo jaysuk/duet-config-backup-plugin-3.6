@@ -2,8 +2,12 @@
 setlocal
 
 set DWC_DIR=c:\Users\live\Documents\Input Shaping\DuetWebControl-3.6-dev
-set PLUGIN_REPO=%~dp0
 set PLUGIN_ID=DuetConfigBackup
+
+:: %~dp0 has a trailing backslash — a quoted "%PLUGIN_REPO%\" arg has its closing quote escaped by
+:: that backslash (Windows command-line quoting rule), corrupting the path passed to build-plugin.js.
+set PLUGIN_REPO=%~dp0
+if "%PLUGIN_REPO:~-1%"=="\" set PLUGIN_REPO=%PLUGIN_REPO:~0,-1%
 
 echo Cleaning stale cache...
 if exist "%DWC_DIR%\src\plugins\%PLUGIN_ID%" rmdir /s /q "%DWC_DIR%\src\plugins\%PLUGIN_ID%"
@@ -28,5 +32,5 @@ exit /b 1
 
 :found
 echo Copying %ZIP% to plugin repo...
-copy /y "%DWC_DIR%\dist\%ZIP%" "%PLUGIN_REPO%%ZIP%" >nul
-echo Done: %PLUGIN_REPO%%ZIP%
+copy /y "%DWC_DIR%\dist\%ZIP%" "%PLUGIN_REPO%\%ZIP%" >nul
+echo Done: %PLUGIN_REPO%\%ZIP%
