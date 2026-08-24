@@ -70,8 +70,30 @@
 						· {{ $t("plugins.duetConfigBackup.configBackup.create.resultSkipped", { count: result.manifest.counts.skipped }) }}
 					</span>
 				</div>
-				<RedactionSummary :entries="result.redactions.entries" :redacted="result.manifest.redacted" />
+				<RedactionSummary :entries="result.redactions.entries" :redacted="result.manifest.redacted" allow-exclude @exclude="onExclude" />
 			</template>
+
+			<v-divider class="my-3" />
+			<v-expansion-panels>
+				<v-expansion-panel>
+					<v-expansion-panel-header class="text-body-2">
+						{{ $t("plugins.duetConfigBackup.configBackup.create.exclusionsHeading", { count: exclusions.length }) }}
+					</v-expansion-panel-header>
+					<v-expansion-panel-content>
+						<div class="text-caption text--secondary mb-2">{{ $t("plugins.duetConfigBackup.configBackup.create.exclusionsHelp") }}</div>
+						<div v-if="exclusions.length === 0" class="text-caption text--secondary">
+							{{ $t("plugins.duetConfigBackup.configBackup.create.exclusionsEmpty") }}
+						</div>
+						<template v-else>
+							<v-chip v-for="name in exclusions" :key="name" small class="mr-2 mb-2" close
+									:aria-label="$t('plugins.duetConfigBackup.configBackup.create.exclusionsRemove', { name })"
+									@click:close="onRemoveExclusion(name)">
+								{{ name }}
+							</v-chip>
+						</template>
+					</v-expansion-panel-content>
+				</v-expansion-panel>
+			</v-expansion-panels>
 		</v-card-text>
 
 		<v-dialog v-model="unredactedDialog.open" max-width="520">
@@ -115,16 +137,18 @@
 				</v-card-actions>
 			</v-card>
 		</v-dialog>
+
+		<v-snackbar v-model="toast.open" :timeout="4000">{{ toast.text }}</v-snackbar>
 	</v-card>
 </template>
 
 <script>
 import {
-	addBackedUpMachineKey, buildArchive, buildLiveDirectories, buildMachineIdentity, collectAll,
-	defaultMachineFolder, DEFAULT_MAX_FILE_BYTES, getDropboxSettings, getDuetCloudApiUrl, getDuetCloudFifoLimit,
-	getDuetCloudSession, getGithubSettings, getGoogleDriveClientId, getLastBackupAt, getRedactPreference,
-	getWebDavSettings, hasAcknowledgedUnredacted, readArchive, setAcknowledgedUnredacted, setLastBackupAt,
-	setRedactPreference,
+	addBackedUpMachineKey, addRedactionExclusion, buildArchive, buildLiveDirectories, buildMachineIdentity,
+	collectAll, defaultMachineFolder, DEFAULT_MAX_FILE_BYTES, getDropboxSettings, getDuetCloudApiUrl,
+	getDuetCloudFifoLimit, getDuetCloudSession, getGithubSettings, getGoogleDriveClientId, getLastBackupAt,
+	getRedactionExclusions, getRedactPreference, getWebDavSettings, hasAcknowledgedUnredacted, readArchive,
+	removeRedactionExclusion, setAcknowledgedUnredacted, setLastBackupAt, setRedactPreference,
 } from "dwc-config-backup-core";
 import { downloadArchive, backupFilename } from "dwc-config-backup-core/destinations/localZip";
 import { isRepoPrivate, pushBackup } from "dwc-config-backup-core/destinations/github";
@@ -175,6 +199,13 @@ export default {
 			result: null,
 			unredactedDialog: { open: false, count: 0, entries: [], resolve: null },
 			publicRepoDialog: { open: false, typed: "", resolve: null },
+			// Redaction exclusions (dwc-config-backup-core's REDACTION-EXCLUSIONS-PLAN.md §6.2) - no
+			// in-place re-scan (plan option (b), recommended): `collected` is a local inside
+			// onCreate() and is gone by the time this list is on screen, and a redacted `result` has
+			// no recoverable originals to re-scan anyway. Exclude -> persist -> toast; the change
+			// applies on the NEXT backup.
+			exclusions: getRedactionExclusions(),
+			toast: { open: false, text: "" },
 		};
 	},
 	computed: {
@@ -262,6 +293,16 @@ export default {
 			if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB`; }
 			return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 		},
+		onExclude(name) {
+			addRedactionExclusion(name);
+			this.exclusions = getRedactionExclusions();
+			this.toast.text = this.$t("plugins.duetConfigBackup.configBackup.redaction.excludeToast", { name });
+			this.toast.open = true;
+		},
+		onRemoveExclusion(name) {
+			removeRedactionExclusion(name);
+			this.exclusions = getRedactionExclusions();
+		},
 		async onCreate() {
 			this.error = null;
 			this.result = null;
@@ -280,10 +321,15 @@ export default {
 				const pluginVersion = this.installedVersion();
 				const dwcVersion = this.runningDwcVersion();
 
+				// Same source for both calls below (REDACTION-EXCLUSIONS-PLAN.md §6.2 step 3, in
+				// dwc-config-backup-core) - the dry-run preview and the real archive must agree on
+				// what's excluded, or the preview could promise a redaction the real backup then skips.
+				const excludedNames = new Set(getRedactionExclusions());
+
 				let useRedact = this.redact;
 				if (!useRedact && this.destination !== "local" && !hasAcknowledgedUnredacted(this.destination)) {
 					// Dry-run scan so the warning can name exactly what's in the backup, regardless of the switch.
-					const dryRun = await buildArchive(collected, { redact: false, scope: this.scope, machine: identity, directories, pluginVersion, dwcVersion });
+					const dryRun = await buildArchive(collected, { redact: false, scope: this.scope, machine: identity, directories, pluginVersion, dwcVersion, excludedNames });
 					if (dryRun.redactions.entries.length > 0) {
 						const choice = await this.askUnredacted(dryRun.redactions.entries);
 						if (choice === "cancel") { this.busy = false; return; }
@@ -292,7 +338,7 @@ export default {
 					}
 				}
 
-				const built = await buildArchive(collected, { redact: useRedact, scope: this.scope, machine: identity, directories, pluginVersion, dwcVersion });
+				const built = await buildArchive(collected, { redact: useRedact, scope: this.scope, machine: identity, directories, pluginVersion, dwcVersion, excludedNames });
 				this.result = built;
 
 				if (this.destination === "local") {

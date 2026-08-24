@@ -31,7 +31,7 @@ permissions:
 env:
   # Pin the dwc-config-backup-core version this plugin builds against. Bump alongside any dependency
   # update - there's no package.json here for a workflow step to read this from automatically.
-  CORE_VERSION: 0.1.11
+  CORE_VERSION: 0.1.12
 
 jobs:
   build:
