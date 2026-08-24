@@ -31,7 +31,7 @@ permissions:
 env:
   # Pin the dwc-config-backup-core version this plugin builds against. Bump alongside any dependency
   # update - there's no package.json here for a workflow step to read this from automatically.
-  CORE_VERSION: 0.1.12
+  CORE_VERSION: 0.1.13
   # The Conventional-Commit changelog generator is shared across the Duet plugin family and lives in
   # the runtime repo (single source of truth). Pinned to a ref; bump this one line to adopt changelog
   # format changes. Source: jaysuk/dwc-plugin-runtime → scripts/changelog.mjs.
