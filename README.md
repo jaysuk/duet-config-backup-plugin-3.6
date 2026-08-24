@@ -34,6 +34,16 @@ npm install --save-dev dwc-config-backup-core
 It's [published on npm](https://www.npmjs.com/package/dwc-config-backup-core), so this needs no git
 access - a `file:` link to a local checkout of that repo also works while developing locally.
 
+## Releasing
+
+Pushing a `vX.Y.Z` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
+does the same thing as `build.bat` but against a fresh checkout of upstream `Duet3D/DuetWebControl`
+(`v3.6-dev` by default) instead of your local one, then publishes a GitHub Release with the ZIP
+attached. Bump `plugin.json`'s `version` first - the tag must match it. The workflow's own
+`CORE_VERSION` env var pins which `dwc-config-backup-core` it installs; bump that alongside any
+dependency update, the same version you'd otherwise pass to the `npm install --save-dev` command
+above.
+
 ## Known reduced scope vs the DWC 3.7 build
 
 - **No "config.g was saved" auto-backup nudge.** DWC 3.7 listens for a global `fileUploaded` event

@@ -1,0 +1,113 @@
+name: Release
+
+# Builds the installable plugin ZIP against a real DuetWebControl 3.6 checkout and creates a GitHub
+# Release for it - no local build.bat run needed. Just push a version tag:
+#
+#   (bump plugin.json's "version") then:
+#   git tag v1.2.3 && git push origin v1.2.3
+#
+# This repo intentionally has no package.json (see README's "Building" section) - DWC's own
+# build-plugin script does the compiling, and this workflow does what that section documents as a
+# manual step: `npm install --save-dev dwc-config-backup-core` into the DWC checkout before building.
+# Bump CORE_VERSION below whenever dwc-config-backup-core is upgraded (same version you'd otherwise
+# type by hand into that install command).
+#
+# You can also run it manually (Actions -> Release -> Run workflow) to build a ZIP as an artifact,
+# optionally against a different DWC ref.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dwc-ref:
+        description: DuetWebControl branch/tag/sha to build against
+        default: v3.6-dev
+
+permissions:
+  contents: write # create the Release and upload the asset
+
+env:
+  # Pin the dwc-config-backup-core version this plugin builds against. Bump alongside any dependency
+  # update - there's no package.json here for a workflow step to read this from automatically.
+  CORE_VERSION: 0.1.11
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: plugin
+
+      - name: Checkout DuetWebControl
+        uses: actions/checkout@v6
+        with:
+          repository: Duet3D/DuetWebControl
+          ref: ${{ github.event.inputs.dwc-ref || 'v3.6-dev' }}
+          path: DuetWebControl
+
+      # Record exactly which DWC the ZIP is built against, for the release notes.
+      - name: Capture DuetWebControl build info
+        id: dwc
+        run: |
+          echo "version=$(node -p "require('./DuetWebControl/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C DuetWebControl rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "ref=${{ github.event.inputs.dwc-ref || 'v3.6-dev' }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v6
+        with: { node-version: 20 }
+
+      # The tag must match the version stamped into the ZIP/manifest, so a release can't ship a
+      # mismatched build.
+      - name: Verify tag matches plugin version
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: plugin
+        run: |
+          VER=$(node -p "require('./plugin.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$VER" != "$TAG" ]; then
+            echo "::error::Tag '$TAG' != plugin.json version '$VER'. Bump plugin.json and re-tag."
+            exit 1
+          fi
+
+      - name: Install DuetWebControl
+        working-directory: DuetWebControl
+        run: npm install
+
+      # DWC's build-plugin script does not install a plugin's own dependencies (see this repo's
+      # README) - install the pinned dwc-config-backup-core straight into DWC's node_modules.
+      - name: Install dwc-config-backup-core into DuetWebControl
+        working-directory: DuetWebControl
+        run: npm install --save-dev "dwc-config-backup-core@${CORE_VERSION}"
+
+      - name: Build installable ZIP
+        working-directory: DuetWebControl
+        run: npm run build-plugin -- "${{ github.workspace }}/plugin"
+
+      - name: Move ZIP into plugin checkout
+        run: |
+          ZIP=$(ls DuetWebControl/dist/DuetConfigBackup-*.zip | head -n1)
+          if [ -z "$ZIP" ]; then
+            echo "::error::No ZIP produced by build-plugin"
+            exit 1
+          fi
+          mv "$ZIP" plugin/
+
+      - name: Publish Release with the ZIP (tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: false
+          generate_release_notes: true
+          body: |
+            Built against DuetWebControl `${{ steps.dwc.outputs.ref }}` (${{ steps.dwc.outputs.version }}, `${{ steps.dwc.outputs.sha }}`), using dwc-config-backup-core `${{ env.CORE_VERSION }}`.
+          files: plugin/DuetConfigBackup-*.zip
+
+      - name: Upload ZIP as an artifact (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: DuetConfigBackup-3.6-plugin
+          path: plugin/DuetConfigBackup-*.zip
