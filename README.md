@@ -36,10 +36,16 @@ access - a `file:` link to a local checkout of that repo also works while develo
 
 ## Releasing
 
+Run `node scripts/release.mjs 1.3.1 --push`. It drafts release notes with Claude into `CHANGELOG.md`,
+pauses so you can read and edit them, bumps `plugin.json`, commits, tags and pushes (`--no-notes` skips the
+draft; `--yes` skips the pause). It is a launcher for the shared release script in
+[jaysuk/dwc-plugin-workflows](https://github.com/jaysuk/dwc-plugin-workflows).
+
 Pushing a `vX.Y.Z` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
 does the same thing as `build.bat` but against a fresh checkout of upstream `Duet3D/DuetWebControl`
 (`v3.6-dev` by default) instead of your local one, then publishes a GitHub Release with the ZIP
-attached. Bump `plugin.json`'s `version` first - the tag must match it. The workflow's own
+attached. The tag must match `plugin.json`'s `version` (the release script takes care of that). Run the
+workflow by hand from the Actions tab for a dry run that publishes nothing. The workflow's own
 `CORE_VERSION` env var pins which `dwc-config-backup-core` it installs; bump that alongside any
 dependency update, the same version you'd otherwise pass to the `npm install --save-dev` command
 above.
